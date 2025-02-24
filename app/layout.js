@@ -1,23 +1,36 @@
+import { Inter, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { ThemeProvider, SessionProviderWrapper } from "./providers";
+import Navbar from "@/components/Navbar";
 import "./globals.css";
-import { Geist_Mono } from "next/font/google";
-import { Inter } from "next/font/google";
-import Providers from "./providers";
 
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-});
+const inter = Inter({ subsets: ["latin"] });
+const geistMono = Geist_Mono({ subsets: ["latin"] });
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
+export const metadata = {
+  title: "SJCET Link Shortener",
+  description: "Shorten your links with SJCET URL Shortener",
+};
 
-export default function Layout({ children }) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistMono.variable} ${inter.variable}`}>
-      <body className="bg-gray-100">
-        <Providers>{children}</Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} ${geistMono.variable}`}>
+        <SessionProviderWrapper>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Navbar />
+            {children}
+            <Toaster
+              position="top-center"
+              richColors
+              />
+          </ThemeProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
