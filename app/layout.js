@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "SJCET Link Shortener",
-  description: "Shorten your links with SJCET URL Shortener",
+  title: "ShortX - SJCET",
+  description: "Shorten your links with ShortX - SJCET",
 };
 
 export default function RootLayout({ children }) {

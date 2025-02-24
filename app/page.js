@@ -1,16 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { LinkIcon, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Sparkles } from "@/components/ui/sparkles";
-import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
+import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
+import { TypingAnimation } from "@/components/magicui/typing-animation";
 
 export default function Home() {
   const router = useRouter();
   const { data: session } = useSession();
+  const shadowColour = "white";
 
   const handleShortenClick = () => {
     if (!session) {
@@ -36,33 +38,32 @@ export default function Home() {
                     🌐⚡
                   </span>
                 </div>
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-gray-500">
-                  ShortX - SJCET
+                <h1>
+                  <TypingAnimation className=" text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-gray-500">
+                    ShortX - SJCET
+                  </TypingAnimation>
                 </h1>
+
                 <p className="max-w-[800px] text-muted-foreground text-lg md:text-2xl">
-                  Simplify link sharing with speed and efficiency. 🚀
-                  <br />
                   Trim long URLs, create official short links, and share them
                   effortlessly across SJCET. Simplify access to academic
-                  resources, campus updates, and event links with ease! 🎓📎
+                    resources, campus updates, and event links with ease! 🎓📎
                 </p>
               </div>
               <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                <Button
-                  size="lg"
-                  className="text-lg px-8 py-6 cursor-pointer"
+                <InteractiveHoverButton
+                  className="text-lg px-8 py-3 cursor-pointer"
                   onClick={handleShortenClick}
                 >
-                  <LinkIcon className="mr-3 h-5 w-5" />
                   Shorten URL
-                </Button>
+                </InteractiveHoverButton>
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={() => router.push("/dashboard")}
                   className="text-lg px-8 py-6 cursor-pointer"
                 >
-                  View Dashboard
+                  View your Profile
                   <ArrowRight className="ml-3 h-5 w-5" />
                 </Button>
               </div>
