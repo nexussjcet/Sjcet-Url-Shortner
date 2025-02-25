@@ -6,6 +6,6 @@ export function SessionProviderWrapper({ children }) {
   return <SessionProvider>{children}</SessionProvider>;
 }
 
-export function ThemeProvider({ children, ...props }) {
+export function ThemeProviderWrapper({ children, ...props }) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Sparkles } from "@/components/ui/sparkles";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 import { TypingAnimation } from "@/components/magicui/typing-animation";
+import Navbar from "@/components/Navbar";
 
 export default function Home() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function Home() {
   return (
     <main className="relative h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-background via-background to-slate-900/20">
       <div className="absolute h-full w-full bg-gradient-to-r from-transparent via-background/30 to-background" />
-
+      <Navbar />
       <div className="relative flex h-full items-center justify-center -mt-20">
         <div className="container px-4 md:px-6">
           <div className="flex justify-center items-center">
@@ -47,7 +48,7 @@ export default function Home() {
                 <p className="max-w-[800px] text-muted-foreground text-lg md:text-2xl">
                   Trim long URLs, create official short links, and share them
                   effortlessly across SJCET. Simplify access to academic
-                    resources, campus updates, and event links with ease! 🎓📎
+                  resources, campus updates, and event links with ease! 🎓📎
                 </p>
               </div>
               <div className="flex flex-col gap-4 min-[400px]:flex-row">
@@ -72,7 +73,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="absolute bottom-0 z-[2] h-[290px] w-screen overflow-hidden [mask-image:radial-gradient(100%_50%,white,transparent)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_bottom_center,#3273ff,transparent_90%)] before:opacity-40 after:absolute">
+      <div className="absolute bottom-0 z-[2] h-[400px] w-screen overflow-hidden [mask-image:radial-gradient(100%_50%,white,transparent)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_bottom_center,#3273ff,transparent_90%)] before:opacity-40 after:absolute">
         <Sparkles
           density={1800}
           speed={1.4}
