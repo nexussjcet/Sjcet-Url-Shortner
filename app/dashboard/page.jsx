@@ -72,8 +72,8 @@ export default function Dashboard() {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold justify-center ">Your Shortened URLs</h2>
-      <br/>
+      <h2 className="text-xl font-bold justify-center ">Hello, {name} 👋</h2>
+      <br />
       <BentoGrid>
         {features.map((feature, idx) => (
           <BentoCard key={idx} {...feature} />

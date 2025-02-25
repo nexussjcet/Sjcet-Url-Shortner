@@ -56,17 +56,8 @@ export default function Home() {
                   className="text-lg px-8 py-3 cursor-pointer"
                   onClick={handleShortenClick}
                 >
-                  Shorten URL
+                  Get Started
                 </InteractiveHoverButton>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => router.push("/dashboard")}
-                  className="text-lg px-8 py-6 cursor-pointer"
-                >
-                  View your Profile
-                  <ArrowRight className="ml-3 h-5 w-5" />
-                </Button>
               </div>
             </div>
           </div>

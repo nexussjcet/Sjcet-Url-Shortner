@@ -22,9 +22,7 @@ export default function Navbar() {
       <div className="flex h-16 items-center px-4 container mx-auto">
         <Link href="/" className="flex items-center">
           <LinkIcon className="h-6 w-6 mr-2" />
-          <span className="font-bold bg-clip-text text-white">
-            ShortX
-          </span>
+          <span className="font-bold bg-clip-text text-white">ShortX</span>
         </Link>
 
         <div className="ml-auto flex items-center space-x-4">
@@ -32,18 +30,24 @@ export default function Navbar() {
             {session ? (
               <>
                 <Link href="/shorten">
-                  <Button variant="outline" className="hover:bg-slate-800/50">
+                  <Button
+                    variant="outline"
+                    className="hover:bg-slate-100/50 cursor-pointer"
+                  >
                     Shorten URL
                   </Button>
                 </Link>
-                <Link href="/profile">
-                  <Button variant="outline" className="hover:bg-slate-800/50">
-                    Profile
+                <Link href="/dashboard">
+                  <Button
+                    variant="outline"
+                    className="hover:bg-slate-100/50 cursor-pointer"
+                  >
+                    Dashboard
                   </Button>
                 </Link>
                 <Button
                   onClick={() => signOut()}
-                  className="hover:bg-slate-800/50"
+                  className="hover:bg-slate-100/50 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -52,7 +56,7 @@ export default function Navbar() {
             ) : (
               <Button
                 onClick={() => signIn()}
-                className="hover:bg-slate-800/50"
+                className="hover:bg-slate-100/50 cursor-pointer"
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 Login
@@ -70,7 +74,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="space-y-1 px-2 pb-3 pt-2">
@@ -81,16 +84,16 @@ export default function Navbar() {
                     Shorten URL
                   </Button>
                 </Link>
-                <Link href="/profile" className="block px-3 py-2">
+                <Link href="/dashboard" className="block px-3 py-2">
                   <Button variant="outline" className="w-full justify-start">
-                    Profile
+                    Dashboard
                   </Button>
                 </Link>
                 <div className="px-3 py-2">
                   <Button
                     onClick={() => signOut()}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Logout
@@ -102,9 +105,9 @@ export default function Navbar() {
                 <Button
                   onClick={() => signIn()}
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start cursor-pointer"
                 >
-                  <LogIn className="h-4 w-4 mr-2" />
+                  <LogIn className="h-4 w-4 mr-2 cursor-pointer" />
                   Login
                 </Button>
               </div>
