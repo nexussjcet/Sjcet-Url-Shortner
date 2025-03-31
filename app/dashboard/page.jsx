@@ -75,8 +75,8 @@ export default function Dashboard() {
       <h2 className="text-xl font-bold justify-center ">Hello, {name} 👋</h2>
       <br />
       <BentoGrid>
-        {features.map((feature, idx) => (
-          <BentoCard key={idx} {...feature} />
+        {features.map((feature) => (
+          <BentoCard key={feature.name} {...feature} />
         ))}
       </BentoGrid>
       <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 md:px-8">
