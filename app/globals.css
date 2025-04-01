@@ -22,6 +22,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -30,6 +31,7 @@
     border-color: var(--color-gray-200, currentColor);
   }
 }
+
 /*
   ---break---
 */
@@ -68,6 +70,7 @@
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.869 0.022 252.894);
 }
+
 /*
   ---break---
 */
@@ -105,6 +108,7 @@
   --sidebar-border: oklch(0.279 0.041 260.031);
   --sidebar-ring: oklch(0.446 0.043 257.281);
 }
+
 /*
   ---break---
 */
@@ -146,6 +150,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --animate-gradient: gradient 8s linear infinite;
+
   /*
   ---break---
 */
@@ -155,6 +160,7 @@
     }
   }
 }
+
 /*
   ---break---
 */
@@ -162,9 +168,30 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-montserrat);
+}
+
+p,
+span,
+div,
+a,
+button,
+input,
+textarea {
+  font-family: var(--font-inter);
 }
 
 .bg-grid-white\/10 {
@@ -175,22 +202,27 @@
   0% {
     transform: translate(0px, 0px) scale(1);
   }
+
   33% {
     transform: translate(30px, -50px) scale(1.1);
   }
+
   66% {
     transform: translate(-20px, 20px) scale(0.9);
   }
+
   100% {
     transform: translate(0px, 0px) scale(1);
   }
 }
 
 @keyframes pulse-slow {
+
   0%,
   100% {
     opacity: 70%;
   }
+
   50% {
     opacity: 40%;
   }

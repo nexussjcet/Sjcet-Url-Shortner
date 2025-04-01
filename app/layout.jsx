@@ -1,12 +1,14 @@
-import { Inter, Geist_Mono } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import { Toaster } from "sonner";
 import { SessionProviderWrapper, ThemeProviderWrapper } from "./providers";
-import Navbar from "@/components/Navbar";
 import "./globals.css";
-import { FloatingDock } from "@/components/ui/floating-dock";
 
 const inter = Inter({ subsets: ["latin"] });
-const geistMono = Geist_Mono({ subsets: ["latin"] });
+const montserrat = Montserrat({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+});
 
 export const metadata = {
   title: "ShortX - SJCET",
@@ -16,7 +18,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${geistMono.variable}`}>
+      <body className={`${inter.className} ${montserrat.variable}`}>
         <SessionProviderWrapper>
           <ThemeProviderWrapper
             attribute="class"
@@ -25,10 +27,7 @@ export default function RootLayout({ children }) {
             disableTransitionOnChange
           >
             {children}
-            <Toaster
-              position="top-center"
-              richColors
-            />
+            <Toaster position="top-center" richColors />
           </ThemeProviderWrapper>
         </SessionProviderWrapper>
       </body>
