@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { auth, db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -9,10 +10,9 @@ export default function ShortenForm() {
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [shortUrl, setShortUrl] = useState(null);
-  const { data: session } = useSession();
 
   const handleShorten = async () => {
-    if (!session) {
+    if (!auth.currentUser) {
       toast.error("You must be logged in to shorten links!");
       return;
     }
@@ -23,20 +23,18 @@ export default function ShortenForm() {
     }
 
     try {
-      const res = await fetch("https://sjcet.in/shorten", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, name }),
+      const docRef = await addDoc(collection(db, "urls"), {
+        originalUrl: url,
+        name: name,
+        userId: auth.currentUser.uid,
+        createdAt: new Date().toISOString(),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setShortUrl(data.shortUrl);
-        toast.success("URL shortened successfully!");
-      } else {
-        toast.error(data.message || "Failed to shorten URL.");
-      }
+
+      const shortUrl = `https://sjcet.in/${docRef.id}`;
+      setShortUrl(shortUrl);
+      toast.success("URL shortened successfully!");
     } catch (error) {
-      toast.error("Error connecting to API.");
+      toast.error("Failed to shorten URL: " + error.message);
     }
   };
 

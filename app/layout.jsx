@@ -19,7 +19,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${montserrat.variable}`}>
-        <SessionProviderWrapper>
           <ThemeProviderWrapper
             attribute="class"
             defaultTheme="system"
@@ -29,7 +28,6 @@ export default function RootLayout({ children }) {
             {children}
             <Toaster position="top-center" richColors />
           </ThemeProviderWrapper>
-        </SessionProviderWrapper>
       </body>
     </html>
   );

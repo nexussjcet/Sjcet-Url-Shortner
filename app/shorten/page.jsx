@@ -8,10 +8,15 @@ import { QrCode, History, Copy, ExternalLink } from "lucide-react";
 import QRCode from "react-qr-code";
 
 export default function ShortenPage() {
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 -left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-radial from-slate-900/50 to-transparent pointer-events-none" />
+      </div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <motion.div
           className="absolute inset-0 -z-10"
           initial={{ opacity: 0 }}

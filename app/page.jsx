@@ -1,21 +1,30 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { auth } from "@/lib/firebase";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 import { TypingAnimation } from "@/components/magicui/typing-animation";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleShortenClick = () => {
-    if (!session) {
+    if (!user) {
       toast.error("Please login to shorten URLs");
-      router.push("/auth/signin");
+      router.push("/auth/signup");
       return;
     }
     router.push("/shorten");

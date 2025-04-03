@@ -1,5 +1,4 @@
 "use client";
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import {
   IconLink,
@@ -102,17 +101,25 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-2 sm:p-4">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 -left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-radial from-slate-900/50 to-transparent pointer-events-none" />
+      </div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      <div className="relative max-w-7xl mx-auto p-2 sm:p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">USER DASHBOARD</h1>
+            <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500">
+              USER DASHBOARD
+            </h1>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-2 sm:gap-3 auto-rows-min">
           <div className="col-span-full lg:col-span-3 grid gap-3">
-            <div className="rounded-xl border bg-card p-4">
+            <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-4">
               <div className="flex flex-col items-center text-center">
                 <div className="w-24 h-24 rounded-full overflow-hidden mb-4">
                   <img
@@ -157,7 +164,7 @@ export default function Dashboard() {
               {collegeStats.slice(0, 2).map((stat) => (
                 <div
                   key={stat.label}
-                  className="p-4 rounded-xl bg-card border transition-colors hover:bg-muted/50"
+                  className="p-4 rounded-xl bg-card/30 border border-white/10 backdrop-blur-sm transition-colors hover:bg-card/50"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -193,7 +200,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-              <div className="rounded-xl border bg-card p-3 sm:p-4">
+              <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-3 sm:p-4">
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold">
@@ -228,7 +235,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="rounded-xl border bg-card p-3 sm:p-4">
+              <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-3 sm:p-4">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base sm:text-lg font-semibold">
                     Domain Distribution
@@ -258,7 +265,7 @@ export default function Dashboard() {
           </div>
 
           <div className="col-span-full lg:col-span-4 grid gap-2 sm:gap-3">
-            <div className="rounded-xl border bg-card p-3 sm:p-4">
+            <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-3 sm:p-4">
               <h3 className="text-base sm:text-lg font-semibold mb-4">
                 Resource Analytics
               </h3>
@@ -282,7 +289,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card p-3 sm:p-4">
+            <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-3 sm:p-4">
               <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">
                 Performance Metrics
               </h3>
@@ -316,7 +323,7 @@ export default function Dashboard() {
           </div>
 
           <div className="col-span-full lg:col-span-8 grid gap-2 sm:gap-4">
-            <div className="rounded-xl border bg-card p-3 sm:p-4">
+            <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-3 sm:p-4">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
                 Recent URLs
               </h3>
@@ -351,13 +358,13 @@ export default function Dashboard() {
                       <div className="flex gap-1 sm:gap-2">
                         <button
                           type="button"
-                          className="p-1.5 sm:p-2 hover:bg-background rounded"
+                          className="p-1.5 sm:p-2 hover:bg-white/5 rounded transition-colors"
                         >
                           <Share2Icon className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
-                          className="p-1.5 sm:p-2 hover:bg-background rounded"
+                          className="p-1.5 sm:p-2 hover:bg-white/5 rounded transition-colors"
                         >
                           <FileTextIcon className="w-4 h-4" />
                         </button>
