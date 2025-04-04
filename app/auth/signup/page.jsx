@@ -1,19 +1,46 @@
 "use client";
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
+  setDoc,
+  doc,
+  query,
+  collection,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
 export default function SignUp() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "",
+    department: "",
+    year: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+
+  const departments = [
+    "CSE",
+    "CSE(AI)",
+    "CSE(CY)",
+    "AI&DS",
+    "MBA",
+    "MCA",
+    "ECE",
+    "EEE",
+    "ME",
+    "CE",
+  ];
+  const years = ["1", "2", "3", "4"];
 
   const validateEmail = (email) => {
     return (
@@ -21,41 +48,92 @@ export default function SignUp() {
     );
   };
 
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!hasUpperCase || !hasLowerCase) {
+      return "Password must contain both uppercase and lowercase letters";
+    }
+    if (!hasNumbers) {
+      return "Password must contain at least one number";
+    }
+    if (!hasSpecialChar) {
+      return "Password must contain at least one special character";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateEmail(email)) {
+
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      toast.error(passwordError);
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
       toast.error("Only SJCET email addresses are allowed");
       return;
     }
 
-    toast.promise(createUserWithEmailAndPassword(auth, email, password), {
-      loading: "Creating your account...",
-      success: () => {
-        router.push("/");
-        return "Account created successfully!";
-      },
-      error: (err) => err.message,
-    });
-  };
-
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-
-    toast.promise(
-      (async () => {
-        const result = await signInWithPopup(auth, provider);
-        if (!validateEmail(result.user.email)) {
-          await auth.currentUser.delete();
-          throw new Error("Only SJCET email addresses are allowed");
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      ).catch((error) => {
+        switch (error.code) {
+          case "auth/email-already-in-use":
+            throw new Error("This email is already registered");
+          case "auth/invalid-email":
+            throw new Error("Invalid email format");
+          case "auth/operation-not-allowed":
+            throw new Error("Email/password accounts are not enabled");
+          case "auth/weak-password":
+            throw new Error("Password is too weak");
+          case "auth/network-request-failed":
+            throw new Error("Network error. Please check your connection");
+          default:
+            throw error;
         }
-        router.push("/");
-      })(),
-      {
-        loading: "Signing up with Google...",
-        success: "Account created successfully!",
-        error: (err) => err.message,
+      });
+
+      try {
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          role: formData.role,
+          department: formData.department,
+          year: formData.year,
+          createdAt: new Date().toISOString(),
+        });
+
+        toast.success("Account created successfully!");
+        router.push("/shorten");
+      } catch (error) {
+        console.error("Firestore setDoc error:", error);
+        await userCredential.user.delete();
+        throw new Error("Failed to create user profile. Please try again.");
       }
-    );
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error(
+        error.message || "Failed to create account. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,61 +149,220 @@ export default function SignUp() {
           <h2 className="text-3xl font-bold text-white mb-6 text-center">
             Create Account
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Email</label>
-              <input
-                type="email"
-                placeholder="your.email@sjcetpalai.ac.in"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
-                Password
+              <label
+                htmlFor="fullName"
+                className="text-sm font-medium text-gray-300"
+              >
+                Full Name
               </label>
               <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                id="fullName"
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-300"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-300"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                >
+                  {showPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="phoneNumber"
+                className="text-sm font-medium text-gray-300"
+              >
+                Phone Number
+              </label>
+              <input
+                id="phoneNumber"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="role"
+                className="text-sm font-medium text-gray-300"
+              >
+                Role
+              </label>
+              <select
+                id="role"
+                value={formData.role}
+                onChange={(e) =>
+                  setFormData({ ...formData, role: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ease-in-out appearance-none hover:bg-white/20 cursor-pointer bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%2F%3E%3C%2Fsvg%3E')]"
+                required
+              >
+                <option value="" className="bg-slate-800">
+                  Select Role
+                </option>
+                <option value="student" className="bg-slate-800">
+                  Student
+                </option>
+                <option value="faculty" className="bg-slate-800">
+                  Faculty
+                </option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="department"
+                className="text-sm font-medium text-gray-300"
+              >
+                Department
+              </label>
+              <select
+                id="department"
+                value={formData.department}
+                onChange={(e) =>
+                  setFormData({ ...formData, department: e.target.value })
+                }
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ease-in-out appearance-none hover:bg-white/20 cursor-pointer bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%2F%3E%3C%2Fsvg%3E')]"
+                required
+              >
+                <option value="" className="bg-slate-800">
+                  Select Department
+                </option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept} className="bg-slate-800">
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {formData.role === "student" && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="year"
+                  className="text-sm font-medium text-gray-300"
+                >
+                  Year
+                </label>
+                <select
+                  id="year"
+                  value={formData.year}
+                  onChange={(e) =>
+                    setFormData({ ...formData, year: e.target.value })
+                  }
+                  className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ease-in-out appearance-none hover:bg-white/20 cursor-pointer bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%2F%3E%3C%2Fsvg%3E')]"
+                  required
+                >
+                  <option value="" className="bg-slate-800">
+                    Select Year
+                  </option>
+                  {years.map((year) => (
+                    <option key={year} value={year} className="bg-slate-800">
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200"
+              disabled={isLoading}
+              className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900 text-gray-400">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="w-full bg-white/10 text-white p-3 rounded-lg font-medium hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 flex items-center justify-center gap-2 border border-white/20"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-              />
-            </svg>
-            Sign up with Google
-          </button>
+
           <p className="mt-6 text-center text-gray-400">
             Already have an account?{" "}
             <Link

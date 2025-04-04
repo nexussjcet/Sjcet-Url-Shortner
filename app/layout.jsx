@@ -1,6 +1,6 @@
 import { Inter, Montserrat } from "next/font/google";
 import { Toaster } from "sonner";
-import { SessionProviderWrapper, ThemeProviderWrapper } from "./providers";
+import { ThemeProviderWrapper } from "./providers";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });

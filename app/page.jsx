@@ -22,12 +22,15 @@ export default function Home() {
   }, []);
 
   const handleShortenClick = () => {
-    if (!user) {
+    if (user?.emailVerified) {
+      router.push("/shorten");
+    } else if (user && !user.emailVerified) {
+      toast.error("Please verify your email before continuing");
+      router.push("/auth/signin");
+    } else {
       toast.error("Please login to shorten URLs");
-      router.push("/auth/signup");
-      return;
+      router.push("/auth/signin");
     }
-    router.push("/shorten");
   };
 
   return (

@@ -1,11 +1,19 @@
 "use client";
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
+import {
+  getDoc,
+  doc,
+  query,
+  collection,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,34 +36,65 @@ export default function SignIn() {
       return;
     }
 
-    toast.promise(signInWithEmailAndPassword(auth, email, password), {
-      loading: "Signing in...",
-      success: () => {
-        router.push("/shorten");
-        return "Signed in successfully!";
-      },
-      error: (err) => err.message,
-    });
+    try {
+      // First check if user exists in users collection
+      const userQuery = query(
+        collection(db, "users"),
+        where("email", "==", email)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (userSnapshot.empty) {
+        toast.error("Please register first");
+        router.push("/auth/signup");
+        return;
+      }
+
+      // If user exists, proceed with authentication
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      toast.success("Signed in successfully!");
+      router.push("/shorten");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
 
-    toast.promise(
-      (async () => {
-        const result = await signInWithPopup(auth, provider);
-        if (!validateEmail(result.user.email)) {
-          await auth.currentUser.delete();
-          throw new Error("Only SJCET email addresses are allowed");
-        }
-        router.push("/shorten");
-      })(),
-      {
-        loading: "Signing in with Google...",
-        success: "Signed in successfully!",
-        error: (err) => err.message,
+    try {
+      const result = await signInWithPopup(auth, provider);
+
+      if (!validateEmail(result.user.email)) {
+        await auth.signOut();
+        toast.error("Only SJCET email addresses are allowed");
+        return;
       }
-    );
+
+      // Check user in users collection
+      const userQuery = query(
+        collection(db, "users"),
+        where("email", "==", result.user.email)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (userSnapshot.empty) {
+        await auth.signOut();
+        toast.error("Please register first");
+        router.push("/auth/signup");
+        return;
+      }
+
+      toast.success("Signed in successfully!");
+      router.push("/shorten");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -73,8 +112,14 @@ export default function SignIn() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Email</label>
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-300"
+              >
+                Email
+              </label>
               <input
+                id="email"
                 type="email"
                 placeholder="your.email@sjcetpalai.ac.in"
                 value={email}
@@ -84,10 +129,14 @@ export default function SignIn() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-300"
+              >
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -105,7 +154,7 @@ export default function SignIn() {
           </form>
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
+              <div className="w-full border-t border-gray-600" />
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-gray-900 text-gray-400">

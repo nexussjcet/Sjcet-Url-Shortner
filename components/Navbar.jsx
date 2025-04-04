@@ -68,7 +68,7 @@ export default function Navbar() {
                     variant="ghost"
                     className="relative group px-4 py-2 overflow-hidden rounded-lg hover:bg-white/5 transition-all duration-300"
                   >
-                    <span className="relative z-10 text-white/90 group-hover:text-white transition-colors">
+                    <span className="relative z-10 text-white/90 group-hover:text-white transition-colors cursor-pointer">
                       Shorten URL
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/5 translate-x-[100%] group-hover:translate-x-0 transition-transform duration-300" />
@@ -79,7 +79,7 @@ export default function Navbar() {
                     variant="ghost"
                     className="relative group px-4 py-2 overflow-hidden rounded-lg hover:bg-white/5 transition-all duration-300"
                   >
-                    <span className="relative z-10 text-white/90 group-hover:text-white transition-colors">
+                    <span className="relative z-10 text-white/90 group-hover:text-white transition-colors cursor-pointer">
                       Dashboard
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/5 translate-x-[100%] group-hover:translate-x-0 transition-transform duration-300" />
@@ -87,7 +87,7 @@ export default function Navbar() {
                 </Link>
                 <Button
                   onClick={handleSignOut}
-                  className="bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 transition-all duration-300"
+                  className="bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -96,7 +96,7 @@ export default function Navbar() {
             ) : (
               <Button
                 onClick={handleSignIn}
-                className="bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 transition-all duration-300"
+                className="bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 Login
