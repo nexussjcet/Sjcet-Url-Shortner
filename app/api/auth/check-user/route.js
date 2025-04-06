@@ -44,7 +44,15 @@ const validateCollegeEmail = (email) => {
 
 export async function POST(req) {
   try {
-    const { email, supabaseId } = await req.json();
+    const body = await req.json();
+    const { email, supabaseId } = body;
+
+    if (!email || !supabaseId) {
+      return NextResponse.json(
+        { error: "Email and supabaseId are required" },
+        { status: 400 }
+      );
+    }
 
     if (!validateCollegeEmail(email)) {
       return NextResponse.json(
@@ -53,20 +61,41 @@ export async function POST(req) {
       );
     }
 
-    const user = await prisma.users.findFirst({
-      where: {
-        OR: [{ email: email }, { id: supabaseId }],
-      },
-    });
+    try {
+      let retries = 3;
+      let user;
 
-    return NextResponse.json({
-      exists: !!user,
-      isValidEmail: true,
-    });
+      while (retries > 0) {
+        try {
+          user = await prisma.users.findFirst({
+            where: {
+              OR: [{ email: email }, { id: supabaseId }],
+            },
+          });
+          break;
+        } catch (connectionError) {
+          retries--;
+          if (retries === 0) throw connectionError;
+          await new Promise((resolve) => setTimeout(resolve, 1000)); 
+        }
+      }
+
+      return NextResponse.json({
+        exists: !!user,
+        isValidEmail: true,
+      });
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json(
+        { error: "Database connection failed. Please try again later." },
+        { status: 503 }
+      );
+    }
   } catch (error) {
+    console.error("Request error:", error);
     return NextResponse.json(
-      { error: "Failed to check user" },
-      { status: 500 }
+      { error: "Invalid request format" },
+      { status: 400 }
     );
   }
 }

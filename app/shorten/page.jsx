@@ -36,6 +36,19 @@ export default function ShortenPage() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    console.log("Current URL updated:", currentUrl);
+  }, [currentUrl]);
+
+  const handleFormSuccess = (response) => {
+    if (response && response.shortenedUrl) {
+      setCurrentUrl(response.shortenedUrl);
+      toast.success("URL shortened successfully!");
+    } else {
+      toast.error("Failed to get shortened URL");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
@@ -123,7 +136,7 @@ export default function ShortenPage() {
         >
           <Card className="w-full max-w-3xl mx-auto border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-slate-900/50 backdrop-blur-sm bg-white/90 dark:bg-slate-900/90">
             <CardContent className="p-6 sm:p-8">
-              <Form userId={user.uid} onSuccess={setCurrentUrl} />
+              <Form userId={user.uid} onSuccess={handleFormSuccess} />
             </CardContent>
           </Card>
         </motion.div>

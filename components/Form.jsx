@@ -6,75 +6,88 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export default function ShortenForm({ onSuccess }) {
-  const [url, setUrl] = useState("");
-  const [name, setName] = useState("");
+  const [longUrl, setLongUrl] = useState("");
+  const [customName, setCustomName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleShorten = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      toast.error("You must be logged in to shorten links!");
-      return;
-    }
-
-    if (!url || !name) {
-      toast.error("URL and name are required!");
-      return;
-    }
-
-    setIsLoading(true);
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      const res = await fetch("https://sjcet.in/shorten", {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("You must be logged in to shorten links!");
+        return;
+      }
+
+      if (!longUrl || !customName) {
+        toast.error("URL and name are required!");
+        return;
+      }
+
+      setIsLoading(true);
+
+      const shortenResponse = await fetch("/api/shorten", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          originalUrl: url,
-          shortName: name,
-          userId: session.user.id,
+          url: longUrl,
+          name: customName,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to shorten URL");
+      if (!shortenResponse.ok) {
+        const errorData = await shortenResponse.json();
+        throw new Error(errorData.error || "Failed to shorten URL");
       }
 
-      onSuccess?.(data.shortenedUrl);
-      toast.success("URL shortened successfully!");
+      const shortenData = await shortenResponse.json();
+      if (shortenData.success) {
+        const saveResponse = await fetch("/api/urls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: longUrl,
+            name: customName,
+            userId: session.user.id,
+          }),
+        });
 
-      setUrl("");
-      setName("");
+        if (!saveResponse.ok) {
+          throw new Error("Failed to save URL to database");
+        }
+
+        const saveData = await saveResponse.json();
+        onSuccess(shortenData);
+        setLongUrl("");
+        setCustomName("");
+      }
     } catch (error) {
-      toast.error(error.message || "Error processing your request");
+      toast.error(error.message || "Error processing URL");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <form onSubmit={handleSubmit} className="p-4 space-y-4">
       <Input
         placeholder="Enter URL"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        value={longUrl}
+        onChange={(e) => setLongUrl(e.target.value)}
         disabled={isLoading}
       />
       <Input
         placeholder="Enter Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={customName}
+        onChange={(e) => setCustomName(e.target.value)}
         disabled={isLoading}
       />
-      <Button onClick={handleShorten} disabled={isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? "Processing..." : "Shorten"}
       </Button>
-    </div>
+    </form>
   );
 }
