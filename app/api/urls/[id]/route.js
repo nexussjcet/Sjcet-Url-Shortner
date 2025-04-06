@@ -1,17 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function DELETE(request, { params }) {
   try {
     const { id } = params;
 
-    const deletedUrl = await prisma.url.delete({
-      where: {
-        id: id,
-      },
-    });
+    const { error } = await supabase.from("urls").delete().eq("id", id);
 
-    if (!deletedUrl) {
+    if (error) {
       return NextResponse.json(
         { success: false, error: "URL not found" },
         { status: 404 }

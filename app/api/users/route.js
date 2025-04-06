@@ -1,5 +1,5 @@
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,37 +19,27 @@ export async function GET(request) {
       );
     }
 
-    const user = await prisma.Users.findFirst({
-      where: { email },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        dept: true,
-        year: true,
-        phone: true,
-        urlCount: true,
-        createdAt: true,
-        updatedAt: true,
-        urls: {
-          select: {
-            id: true,
-            shortenedUrl: true,
-            originalUrl: true,
-            shortName: true,
-            createdAt: true,
-            userId: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 5,
-        },
-      },
-    });
+    const { data: user, error } = await supabase
+      .from("users")
+      .select(
+        `
+        *,
+        urls:urls (
+          id,
+          shortenedUrl,
+          originalUrl,
+          shortName,
+          createdAt,
+          userId
+        )
+      `
+      )
+      .eq("email", email)
+      .order("createdAt", { foreignTable: "urls", ascending: false })
+      .limit(5, { foreignTable: "urls" })
+      .single();
 
-    if (!user || !user.id) {
+    if (error || !user) {
       return NextResponse.json(
         {
           success: false,
@@ -59,40 +49,17 @@ export async function GET(request) {
       );
     }
 
-    const transformedUser = {
-      ...user,
-      id: String(user.id),
-      urls:
-        user.urls?.map((url) => ({
-          ...url,
-          id: String(url.id),
-          userId: String(url.userId),
-          createdAt: url.createdAt?.toISOString(),
-        })) || [],
-      createdAt: user.createdAt?.toISOString(),
-      updatedAt: user.updatedAt?.toISOString(),
-    };
-
     return NextResponse.json({
       success: true,
-      data: transformedUser,
+      data: user,
     });
   } catch (error) {
-    console.error("API Error:", {
-      message: error.message,
-      stack: error.stack,
-      path: request.url,
-    });
-
+    console.error("API Error:", error);
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
         message: error.message,
-        details:
-          process.env.NODE_ENV === "development"
-            ? { stack: error.stack, path: request.url }
-            : undefined,
       },
       { status: 500 }
     );

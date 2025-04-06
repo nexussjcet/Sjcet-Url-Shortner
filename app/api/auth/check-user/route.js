@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 const validateCollegeEmail = (email) => {
@@ -61,40 +61,43 @@ export async function POST(req) {
       );
     }
 
-    try {
-      let retries = 3;
-      let user;
+    let retries = 3;
+    let user;
 
-      while (retries > 0) {
-        try {
-          user = await prisma.users.findFirst({
-            where: {
-              OR: [{ email: email }, { id: supabaseId }],
-            },
-          });
-          break;
-        } catch (connectionError) {
-          retries--;
-          if (retries === 0) throw connectionError;
-          await new Promise((resolve) => setTimeout(resolve, 1000)); 
-        }
+    while (retries > 0) {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select()
+          .or(`email.eq.${email},id.eq.${supabaseId}`)
+          .single();
+
+        if (error && error.code !== "PGRST116") throw error;
+        user = data;
+        break;
+      } catch (connectionError) {
+        retries--;
+        if (retries === 0) throw connectionError;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-
-      return NextResponse.json({
-        exists: !!user,
-        isValidEmail: true,
-      });
-    } catch (dbError) {
-      console.error("Database error:", dbError);
-      return NextResponse.json(
-        { error: "Database connection failed. Please try again later." },
-        { status: 503 }
-      );
     }
+
+    return NextResponse.json({
+      exists: !!user,
+      isValidEmail: true,
+      action: user ? "signin" : "signup",
+      message: user
+        ? "User found, proceed to sign in"
+        : "User not found, proceed to sign up",
+    });
   } catch (error) {
     console.error("Request error:", error);
     return NextResponse.json(
-      { error: "Invalid request format" },
+      {
+        error: "Invalid request format",
+        details: error.message,
+        action: "error",
+      },
       { status: 400 }
     );
   }

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { IconLink } from "@tabler/icons-react";
 import { Share2Icon } from "lucide-react";
-import  Navbar  from "@/components/Navbar";
+import Navbar from "@/components/Navbar";
 import { toast, Toaster } from "sonner";
 
 export default function Dashboard() {
@@ -73,6 +73,19 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (error) {
+      setUrls([]);
+      setError(null);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/auth/signin");
+    }
+  }, [user, loading, router]);
+
   const handleDelete = async (urlId) => {
     if (!confirm("Are you sure you want to delete this URL?")) return;
     setIsDeleting(true);
@@ -106,11 +119,6 @@ export default function Dashboard() {
     }
   };
 
-  if (!user) {
-    router.push("/auth/signin");
-    return null;
-  }
-
   if (loading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
@@ -119,9 +127,8 @@ export default function Dashboard() {
     );
   }
 
-  if (error) {
-    setUrls([]);
-    setError(null);
+  if (!user) {
+    return null;
   }
 
   const calculateStats = () => {
@@ -243,13 +250,7 @@ export default function Dashboard() {
                       >
                         Retry Loading
                       </button>
-                    </div>
-                  ) : urls && urls.length > 0 ? (
-                    urls.slice(0, 6).map((url) => (
-                      <div
-                        key={url.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                      >
+                      <di className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 rounded-lg bg-muted/50 hover:bg-muted transition-colors"/>
                         <div className="space-y-2 sm:space-y-1 mb-3 sm:mb-0">
                           <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[250px] sm:max-w-[300px] lg:max-w-[400px]">
                             {url.originalUrl}
@@ -304,8 +305,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
-                    ))
-                  ) : (
+                    ) : (
                     <div className="text-center py-8">
                       <IconLink className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                       <p className="text-gray-400 mb-2">No URLs created yet</p>

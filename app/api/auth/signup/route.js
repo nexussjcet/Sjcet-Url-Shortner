@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
@@ -87,9 +87,15 @@ export async function POST(req) {
       }
     }
 
-    const existingUser = await prisma.users.findUnique({
-      where: { email: sanitizedData.email },
-    });
+    const { data: existingUser, error: checkError } = await supabase
+      .from("users")
+      .select()
+      .eq("email", sanitizedData.email)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") {
+      throw checkError;
+    }
 
     if (existingUser) {
       return NextResponse.json(
@@ -98,12 +104,18 @@ export async function POST(req) {
       );
     }
 
-    const user = await prisma.users.create({
-      data: {
-        ...sanitizedData,
-        urlCount: 0,
-      },
-    });
+    const { data: user, error: createError } = await supabase
+      .from("users")
+      .insert([
+        {
+          ...sanitizedData,
+          urlCount: 0,
+        },
+      ])
+      .select()
+      .single();
+
+    if (createError) throw createError;
 
     return NextResponse.json({
       message: "User created successfully",

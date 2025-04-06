@@ -41,11 +41,11 @@ export default function ShortenPage() {
   }, [currentUrl]);
 
   const handleFormSuccess = (response) => {
-    if (response && response.shortenedUrl) {
-      setCurrentUrl(response.shortenedUrl);
+    if (response?.success && response?.shortUrl) {
+      setCurrentUrl(response.shortUrl);
       toast.success("URL shortened successfully!");
     } else {
-      toast.error("Failed to get shortened URL");
+      toast.error(response?.error || "Failed to get shortened URL");
     }
   };
 
