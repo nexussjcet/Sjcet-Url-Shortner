@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { auth } from "@/lib/firebase";
-import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Button } from "@/components/ui/button";
 import { LinkIcon, LogIn, LogOut, Menu } from "lucide-react";
 
@@ -11,19 +10,36 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     setMounted(true);
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
+
+    const getInitialSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getInitialSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
-    return () => unsubscribe();
-  }, []);
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   const handleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
     } catch (error) {
       console.error("Error signing in:", error);
     }
@@ -31,7 +47,7 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -56,7 +72,7 @@ export default function Navbar() {
           {user && (
             <div className="flex items-center space-x-2 bg-white/5 rounded-full px-4 py-1.5 border border-white/10">
               <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-gray-200 to-white animate-in fade-in slide-in-from-top-4 duration-700">
-                Welcome, {user.displayName || "User"}!
+                Welcome, {user.user_metadata?.name || "User"}!
               </span>
             </div>
           )}

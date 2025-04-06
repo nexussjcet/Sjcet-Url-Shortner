@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,7 +11,11 @@ export default function ShortenForm({ onSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleShorten = async () => {
-    if (!auth.currentUser) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
       toast.error("You must be logged in to shorten links!");
       return;
     }
@@ -27,25 +30,23 @@ export default function ShortenForm({ onSuccess }) {
     try {
       const res = await fetch("https://sjcet.in/shorten", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, name }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          originalUrl: url,
+          shortName: name,
+          userId: session.user.id,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to shorten URL");
+        throw new Error(data.error || "Failed to shorten URL");
       }
 
-      await addDoc(collection(db, "urls"), {
-        originalUrl: url,
-        shortUrl: data.shortUrl,
-        name: name,
-        userId: auth.currentUser.uid,
-        createdAt: new Date().toISOString(),
-      });
-
-      onSuccess?.(data.shortUrl);
+      onSuccess?.(data.shortenedUrl);
       toast.success("URL shortened successfully!");
 
       setUrl("");

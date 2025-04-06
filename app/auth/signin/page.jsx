@@ -1,19 +1,6 @@
 "use client";
 import { useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
-import {
-  getDoc,
-  doc,
-  query,
-  collection,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -24,76 +11,111 @@ export default function SignIn() {
   const router = useRouter();
 
   const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return false;
+    }
+
+    const domain = "sjcetpalai.ac.in";
+    const departments = [
+      "cs",
+      "cseai",
+      "csecy",
+      "aids",
+      "mba",
+      "mca",
+      "ec",
+      "ee",
+      "me",
+      "ce",
+    ];
+
+    if (email.endsWith(`@${domain}`)) {
+      return true;
+    }
+
+    const [localPart, emailDomain] = email.split("@");
+    const departmentPrefix = emailDomain.split(".")[0].toLowerCase();
     return (
-      email.endsWith("@sjcetpalai.ac.in") || email.endsWith(".sjcetpalai.ac.in")
+      departments.includes(departmentPrefix) &&
+      emailDomain.endsWith(`.${domain}`)
     );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateEmail(email)) {
-      toast.error("Only SJCET email addresses are allowed");
-      return;
-    }
 
     try {
-      // First check if user exists in users collection
-      const userQuery = query(
-        collection(db, "users"),
-        where("email", "==", email)
-      );
-      const userSnapshot = await getDocs(userQuery);
+      const checkResponse = await fetch("/api/auth/check-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-      if (userSnapshot.empty) {
-        toast.error("Please register first");
+      const checkData = await checkResponse.json();
+
+      if (checkResponse.status === 400) {
+        toast.error("Please use a valid SJCET email address");
+        return;
+      }
+
+      if (!checkData.exists) {
+        toast.error("Account not found. Please sign up first.");
         router.push("/auth/signup");
         return;
       }
 
-      // If user exists, proceed with authentication
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (authError) throw authError;
+
+      const finalCheck = await fetch("/api/auth/check-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          supabaseId: authData.user.id,
+        }),
+      });
+
+      const finalData = await finalCheck.json();
+
+      if (!finalData.exists) {
+        await supabase.auth.signOut();
+        toast.error("Account verification failed");
+        return;
+      }
 
       toast.success("Signed in successfully!");
       router.push("/shorten");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || "Failed to sign in");
     }
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-
     try {
-      const result = await signInWithPopup(auth, provider);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+            hd: "sjcetpalai.ac.in", 
+          },
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-      if (!validateEmail(result.user.email)) {
-        await auth.signOut();
-        toast.error("Only SJCET email addresses are allowed");
-        return;
-      }
-
-      // Check user in users collection
-      const userQuery = query(
-        collection(db, "users"),
-        where("email", "==", result.user.email)
-      );
-      const userSnapshot = await getDocs(userQuery);
-
-      if (userSnapshot.empty) {
-        await auth.signOut();
-        toast.error("Please register first");
-        router.push("/auth/signup");
-        return;
-      }
-
-      toast.success("Signed in successfully!");
-      router.push("/shorten");
+      if (error) throw error;
+      toast.success("Redirecting to Google...");
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Failed to sign in with Google");
+      console.error(error);
     }
   };
 
@@ -168,6 +190,7 @@ export default function SignIn() {
             className="w-full bg-white/10 text-white p-3 rounded-lg font-medium hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 flex items-center justify-center gap-2 border border-white/20"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <title>Google Icon</title>
               <path
                 fill="currentColor"
                 d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"

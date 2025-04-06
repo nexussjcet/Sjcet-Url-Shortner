@@ -1,15 +1,6 @@
 "use client";
 import { useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import {
-  setDoc,
-  doc,
-  query,
-  collection,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -43,9 +34,47 @@ export default function SignUp() {
   const years = ["1", "2", "3", "4"];
 
   const validateEmail = (email) => {
-    return (
-      email.endsWith("@sjcetpalai.ac.in") || email.endsWith(".sjcetpalai.ac.in")
-    );
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return false;
+    }
+
+    const departments = [
+      "cse",
+      "cseai",
+      "csecy",
+      "aids",
+      "mba",
+      "mca",
+      "ece",
+      "eee",
+      "me",
+      "ce",
+      "ee", 
+    ];
+    const domain = "sjcetpalai.ac.in";
+    if (email.endsWith(`@${domain}`)) {
+      return true;
+    }
+
+    const [localPart, emailDomain] = email.split("@");
+    if (!emailDomain.endsWith(domain)) {
+      return false;
+    }
+
+    const departmentPart = emailDomain.split(".")[0].toLowerCase();
+    if (!departments.includes(departmentPart)) {
+      return false;
+    }
+
+    if (localPart.includes("+")) {
+      const yearPart = localPart.split("+")[1];
+      if (!/^20\d{2}$/.test(yearPart)) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const validatePassword = (password) => {
@@ -73,64 +102,81 @@ export default function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!validateEmail(formData.email)) {
+      toast.error("Please use a valid SJCET email address (@sjcetpalai.ac.in)");
+      return;
+    }
+
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       toast.error(passwordError);
       return;
     }
 
-    if (!validateEmail(formData.email)) {
-      toast.error("Only SJCET email addresses are allowed");
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      ).catch((error) => {
-        switch (error.code) {
-          case "auth/email-already-in-use":
-            throw new Error("This email is already registered");
-          case "auth/invalid-email":
-            throw new Error("Invalid email format");
-          case "auth/operation-not-allowed":
-            throw new Error("Email/password accounts are not enabled");
-          case "auth/weak-password":
-            throw new Error("Password is too weak");
-          case "auth/network-request-failed":
-            throw new Error("Network error. Please check your connection");
-          default:
-            throw error;
-        }
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            role: formData.role,
+            department: formData.department,
+            year: formData.year,
+          },
+        },
       });
 
-      try {
-        await setDoc(doc(db, "users", userCredential.user.uid), {
+      if (authError) {
+        console.error("Supabase Auth Error:", authError);
+        throw authError;
+      }
+
+      if (!authData?.user?.id) {
+        throw new Error("No user ID received from authentication");
+      }
+
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: authData.user.id,
           name: formData.name,
           email: formData.email,
-          password: formData.password,
           phone: formData.phone,
           role: formData.role,
-          department: formData.department,
-          year: formData.year,
-          createdAt: new Date().toISOString(),
-        });
+          dept: formData.department,
+          year: formData.role === "student" ? formData.year : "",
+        }),
+      });
 
-        toast.success("Account created successfully!");
-        router.push("/shorten");
-      } catch (error) {
-        console.error("Firestore setDoc error:", error);
-        await userCredential.user.delete();
-        throw new Error("Failed to create user profile. Please try again.");
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        console.error("API Response:", responseData);
+        throw new Error(
+          responseData.message || "Failed to create user profile"
+        );
       }
+
+      toast.success("Account created successfully! Please verify your email.");
+      router.push("/auth/signin");
     } catch (error) {
-      console.error("Signup error:", error);
-      toast.error(
-        error.message || "Failed to create account. Please try again."
-      );
+      console.error("Signup error details:", {
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause,
+      });
+      toast.error(error.message || "Failed to create account");
+
+      if (error.message.includes("Failed to create user profile")) {
+        try {
+          await supabase.auth.signOut();
+        } catch (cleanupError) {
+          console.error("Failed to cleanup auth user:", cleanupError);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +266,7 @@ export default function SignUp() {
                       stroke="currentColor"
                       className="w-5 h-5"
                     >
+                      <title>Eye Icon</title>
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -240,6 +287,7 @@ export default function SignUp() {
                         strokeLinejoin="round"
                         d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
                       />
+                      <title>Eye Icon</title>
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"

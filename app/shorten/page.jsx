@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import Form from "@/components/Form";
@@ -30,6 +30,12 @@ export default function ShortenPage() {
   const [showQR, setShowQR] = useState(false);
   const [currentUrl, setCurrentUrl] = useState("");
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/auth/signin");
+    }
+  }, [user, loading, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
@@ -39,7 +45,6 @@ export default function ShortenPage() {
   }
 
   if (!user) {
-    router.push("/auth/signin");
     return null;
   }
 
@@ -123,6 +128,28 @@ export default function ShortenPage() {
           </Card>
         </motion.div>
 
+        {currentUrl && (
+          <motion.div
+            className="relative z-10 mb-8 sm:mb-12"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Card className="w-full max-w-3xl mx-auto border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-slate-900/50 backdrop-blur-sm bg-white/90 dark:bg-slate-900/90">
+              <CardContent className="p-6 sm:p-8">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                    Shortened URL
+                  </h3>
+                  <p className="text-indigo-600 dark:text-indigo-400 break-all">
+                    {currentUrl}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         <motion.div
           className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 max-w-3xl mx-auto"
           initial={{ y: 20, opacity: 0 }}
@@ -193,6 +220,7 @@ export default function ShortenPage() {
                 value={currentUrl}
                 size={200}
                 style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
                 viewBox={`0 0 256 256`}
               />
             )}

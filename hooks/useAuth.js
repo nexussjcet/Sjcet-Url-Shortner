@@ -1,22 +1,24 @@
-import { useEffect, useState } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
-  const [user, loading] = useAuthState(auth);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(() => {
-      setAuthChecked(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
-  return {
-    user,
-    loading: loading || !authChecked,
-    isAuthenticated: !!user,
-  };
+  return { user, loading };
 }

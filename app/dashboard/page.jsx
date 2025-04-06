@@ -2,17 +2,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import {
-  IconLink,
-  IconClick,
-  IconClock,
-  IconLogout,
-} from "@tabler/icons-react";
-import { Share2Icon, Settings2Icon } from "lucide-react";
-import { FileTextIcon } from "@radix-ui/react-icons";
-import Navbar from "@/components/Navbar";
+import { IconLink } from "@tabler/icons-react";
+import { Share2Icon } from "lucide-react";
+import  Navbar  from "@/components/Navbar";
+import { toast, Toaster } from "sonner";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -20,35 +13,56 @@ export default function Dashboard() {
   const [urls, setUrls] = useState([]);
   const [userData, setUserData] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
+      setError(null);
+
+      const MAX_RETRIES = 1;
+      let retryCount = 0;
+
+      const fetchWithRetry = async (url, options = {}) => {
+        while (retryCount < MAX_RETRIES) {
+          try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return { response, data };
+          } catch (err) {
+            retryCount++;
+            if (retryCount === MAX_RETRIES) {
+              throw new Error(`Request failed: ${err.message}`);
+            }
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * retryCount)
+            );
+          }
+        }
+      };
 
       try {
-        // Fetch user data
-        const userQuery = query(
-          collection(db, "users"),
-          where("email", "==", user.email)
+        const { data: userResponse } = await fetchWithRetry(
+          `/api/users?email=${encodeURIComponent(user.email)}`
         );
-        const userSnapshot = await getDocs(userQuery);
-        if (!userSnapshot.empty) {
-          setUserData(userSnapshot.docs[0].data());
+
+        if (!userResponse.success) {
+          throw new Error(userResponse.error || "Failed to fetch user data");
         }
 
-        // Fetch URLs for the user
-        const urlQuery = query(
-          collection(db, "urls"),
-          where("userId", "==", user.uid)
+        setUserData(userResponse.data);
+        const { data: urlData } = await fetchWithRetry(
+          `/api/urls/${userResponse.data.id}`
         );
-        const urlSnapshot = await getDocs(urlQuery);
-        const urlData = urlSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setUrls(urlData);
+
+        setUrls(Array.isArray(urlData) ? urlData : []);
       } catch (error) {
         console.error("Error fetching data:", error);
+        setError("Failed to load data. Please try again later.");
       } finally {
         setDataLoading(false);
       }
@@ -59,6 +73,44 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  const handleDelete = async (urlId) => {
+    if (!confirm("Are you sure you want to delete this URL?")) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/urls/${urlId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete URL");
+      }
+
+      setUrls(urls.filter((url) => url.id !== urlId));
+      setUserData((prev) => ({
+        ...prev,
+        urlCount: Math.max((prev.urlCount || 1) - 1, 0),
+      }));
+
+      toast.success("URL deleted successfully", {
+        description: "The URL has been permanently removed",
+      });
+    } catch (error) {
+      toast.error("Failed to delete URL", {
+        description: error.message,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (!user) {
+    router.push("/auth/signin");
+    return null;
+  }
+
   if (loading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
@@ -67,16 +119,16 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
-    router.push("/auth/signin");
-    return null;
+  if (error) {
+    setUrls([]);
+    setError(null);
   }
 
   const calculateStats = () => {
     return {
-      totalUrls: urls.length,
-      totalClicks: urls.reduce((acc, url) => acc + (url.clicks || 0), 0),
-      activeUrls: urls.filter((url) => url.status === "active").length,
+      totalUrls: userData?.urlCount || 0,
+      totalClicks: urls?.reduce((acc, url) => acc + (url.clicks || 0), 0) || 0,
+      activeUrls: urls?.length || 0,
     };
   };
 
@@ -88,18 +140,6 @@ export default function Dashboard() {
       icon: IconLink,
       trend: "+12%",
     },
-    {
-      label: "Total Clicks",
-      value: stats.totalClicks.toString(),
-      icon: IconClick,
-      trend: "+25%",
-    },
-    {
-      label: "Active Links",
-      value: stats.activeUrls.toString(),
-      icon: IconClock,
-      trend: "+8%",
-    },
   ];
 
   const quickActions = [
@@ -109,42 +149,30 @@ export default function Dashboard() {
     { name: "Analytics", icon: "📊", action: "analytics" },
   ];
 
-  const urlCategories = [
-    { name: "Academic Resources", count: 156, icon: "📚" },
-    { name: "Event Registration", count: 89, icon: "🎫" },
-    { name: "Department Notices", count: 134, icon: "📢" },
-    { name: "Student Projects", count: 78, icon: "🎯" },
-  ];
-
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black">
+      <Toaster position="top-center" expand={true} richColors />
       <Navbar />
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/3 right-0 w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-3xl" />
         <div className="fixed inset-0 bg-[linear-gradient(to_right,#4f4f4f1a_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f1a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       </div>
-
       <main className="relative min-h-screen pt-16 px-4 pb-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
           <div className="flex items-center justify-between py-4">
             <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500">
               USER DASHBOARD
             </h1>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-3 space-y-6">
               <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-6 hover:bg-card/40 transition-colors">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-24 h-24 rounded-full overflow-hidden mb-4">
                     <img
-                      src={
-                        userData?.avatar ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.name}`
-                      }
-                      alt="Profile"
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.name}`}
+                      alt={`Avatar of ${userData?.name || "user"}`}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -154,33 +182,14 @@ export default function Dashboard() {
                   </p>
                   <div className="mt-2 space-y-1">
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
-                      {userData?.department}
+                      {userData?.dept} - Year {userData?.year}
                     </div>
                     <div className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-sm">
-                      {userData?.role}
+                      {userData?.role.toLowerCase()}
                     </div>
-                  </div>
-                </div>
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center">
-                    <button
-                      type="button"
-                      className="flex items-center space-x-2 text-sm hover:text-primary"
-                    >
-                      <Settings2Icon className="w-4 h-4" />
-                      <span>Settings</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="flex items-center space-x-2 text-sm text-red-500 hover:text-red-600"
-                    >
-                      <IconLogout className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                 {collegeStats.map((stat) => (
                   <div
@@ -205,7 +214,6 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-
             <div className="lg:col-span-9 space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {quickActions.map((action) => (
@@ -221,78 +229,95 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-
               <div className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Recent URLs</h3>
                 <div className="space-y-4">
-                  {urls.slice(0, 3).map((url) => (
-                    <div
-                      key={url.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="space-y-2 sm:space-y-1 mb-3 sm:mb-0">
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[250px] sm:max-w-[300px] lg:max-w-[400px]">
-                          {url.originalUrl}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-primary text-xs sm:text-base">
-                            {url.shortUrl}
-                          </p>
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-500">
-                            {url.status}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
-                        <div className="text-right">
-                          <p className="text-xs sm:text-sm font-medium">
-                            {url.clicks?.toLocaleString() || 0} clicks
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(
-                              url.createdAt?.toDate()
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 sm:gap-2">
-                          <button
-                            type="button"
-                            className="p-1.5 sm:p-2 hover:bg-white/5 rounded transition-colors"
-                          >
-                            <Share2Icon className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 sm:p-2 hover:bg-white/5 rounded transition-colors"
-                          >
-                            <FileTextIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+                  {error ? (
+                    <div className="text-center py-8">
+                      <IconLink className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-400 mb-2">Unable to load URLs</p>
+                      <button
+                        type="button"
+                        className="mt-4 px-4 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        onClick={() => window.location.reload()}
+                      >
+                        Retry Loading
+                      </button>
                     </div>
-                  ))}
+                  ) : urls && urls.length > 0 ? (
+                    urls.slice(0, 6).map((url) => (
+                      <div
+                        key={url.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      >
+                        <div className="space-y-2 sm:space-y-1 mb-3 sm:mb-0">
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[250px] sm:max-w-[300px] lg:max-w-[400px]">
+                            {url.originalUrl}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-primary text-xs sm:text-base">
+                              {url.shortenedUrl}
+                            </p>
+                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-500">
+                              {url.status || "active"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
+                          <div className="text-right">
+                            <p className="text-xs sm:text-sm font-medium">
+                              {url.clicks?.toLocaleString() || 0} clicks
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(url.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 sm:gap-2">
+                            <button
+                              type="button"
+                              className="p-1.5 sm:p-2 hover:bg-white/5 rounded transition-colors"
+                            >
+                              <Share2Icon className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(url.id)}
+                              disabled={isDeleting}
+                              className="p-1.5 sm:p-2 hover:bg-red-500/20 rounded transition-colors text-red-500"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-4 h-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <title>Delete</title>
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <IconLink className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-400 mb-2">No URLs created yet</p>
+                      <button
+                        type="button"
+                        className="mt-4 px-4 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        Create your first URL
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {urlCategories.map((category) => (
-                  <div
-                    key={category.name}
-                    className="p-4 sm:p-6 rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm hover:bg-card/50 transition-all"
-                  >
-                    <div className="flex flex-col gap-3 items-center text-center">
-                      <span className="text-3xl">{category.icon}</span>
-                      <div>
-                        <h3 className="font-semibold text-sm sm:text-base text-primary">
-                          {category.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                          {category.count} active links
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

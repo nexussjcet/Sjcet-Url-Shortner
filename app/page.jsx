@@ -3,28 +3,36 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 import { TypingAnimation } from "@/components/magicui/typing-animation";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
-import { onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
-    return () => unsubscribe();
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
-  const handleShortenClick = () => {
-    if (user?.emailVerified) {
+  const handleShortenClick = async () => {
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+
+    if (currentUser?.email_confirmed_at) {
       router.push("/shorten");
-    } else if (user && !user.emailVerified) {
+    } else if (currentUser && !currentUser.email_confirmed_at) {
       toast.error("Please verify your email before continuing");
       router.push("/auth/signin");
     } else {
