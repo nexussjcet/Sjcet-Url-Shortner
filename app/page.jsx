@@ -25,20 +25,8 @@ export default function Home() {
     };
   }, []);
 
-  const handleShortenClick = async () => {
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-
-    if (currentUser?.email_confirmed_at) {
-      router.push("/shorten");
-    } else if (currentUser && !currentUser.email_confirmed_at) {
-      toast.error("Please verify your email before continuing");
-      router.push("/auth/signin");
-    } else {
-      toast.error("Please login to shorten URLs");
-      router.push("/auth/signin");
-    }
+  const handleShortenClick = () => {
+    router.push("/shorten");
   };
 
   return (
@@ -85,12 +73,14 @@ export default function Home() {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="flex flex-col gap-4 min-[400px]:flex-row"
               >
-                <InteractiveHoverButton
-                  className="text-lg px-10 py-4 rounded-full font-medium transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] cursor-pointer bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 border border-blue-500/20 backdrop-blur-sm"
-                  onClick={handleShortenClick}
-                >
-                  Start Shortening
-                </InteractiveHoverButton>
+                {user && (
+                  <InteractiveHoverButton
+                    className="text-lg px-10 py-4 rounded-full font-medium transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] cursor-pointer bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 border border-blue-500/20 backdrop-blur-sm"
+                    onClick={handleShortenClick}
+                  >
+                    Start Shortening
+                  </InteractiveHoverButton>
+                )}
               </motion.div>
             </div>
           </div>

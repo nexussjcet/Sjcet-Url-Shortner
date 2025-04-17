@@ -5,32 +5,41 @@ import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Button } from "@/components/ui/button";
 import { LinkIcon, LogIn, LogOut, Menu } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
-  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const supabase = createClientComponentClient();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    setMounted(true);
+    const setupAuthListener = async () => {
+      try {
+        setLoading(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setUser(session?.user || null);
 
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user || null);
+        });
+
+        setLoading(false);
+        return () => subscription.unsubscribe();
+      } catch (error) {
+        console.error("Auth error:", error);
+        setLoading(false);
+      }
     };
-    getInitialSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    setupAuthListener();
+  }, [supabase, pathname]);
 
   const handleSignIn = async () => {
     try {
@@ -48,12 +57,11 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
+      router.refresh(); 
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
-
-  if (!mounted) return null;
 
   return (
     <nav className="fixed top-0 w-full border-b border-white/10 bg-gradient-to-b from-background/80 to-background/40 backdrop-blur-xl backdrop-saturate-150 z-50">
@@ -69,7 +77,7 @@ export default function Navbar() {
         </Link>
 
         <div className="ml-auto flex items-center space-x-4">
-          {user && (
+          {!loading && user && (
             <div className="flex items-center space-x-2 bg-white/5 rounded-full px-4 py-1.5 border border-white/10">
               <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-gray-200 to-white animate-in fade-in slide-in-from-top-4 duration-700">
                 Welcome, {user.user_metadata?.name || "User"}!
@@ -77,7 +85,7 @@ export default function Navbar() {
             </div>
           )}
           <div className="hidden md:flex items-center space-x-3">
-            {user ? (
+            {!loading && user ? (
               <>
                 <Link href="/shorten">
                   <Button
@@ -109,7 +117,7 @@ export default function Navbar() {
                   Logout
                 </Button>
               </>
-            ) : (
+            ) : !loading ? (
               <Button
                 onClick={handleSignIn}
                 className="bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
@@ -117,6 +125,8 @@ export default function Navbar() {
                 <LogIn className="h-4 w-4 mr-2" />
                 Login
               </Button>
+            ) : (
+              <div className="h-10 w-24 bg-white/5 animate-pulse rounded-md"/>
             )}
           </div>
 
@@ -138,16 +148,16 @@ export default function Navbar() {
             onKeyDown={(e) => {
               if (e.key === "Escape") setMobileMenuOpen(false);
             }}
-            tabIndex={0}
           />
           <div className="absolute top-16 left-0 right-0 z-20 md:hidden border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-in slide-in-from-top duration-300">
             <div className="space-y-1 px-2 pb-3 pt-2">
-              {user ? (
+              {!loading && user ? (
                 <>
                   <Link href="/shorten" className="block px-3 py-2">
                     <Button
                       variant="ghost"
                       className="w-full justify-start hover:bg-accent"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Shorten URL
                     </Button>
@@ -156,13 +166,17 @@ export default function Navbar() {
                     <Button
                       variant="ghost"
                       className="w-full justify-start hover:bg-accent"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Dashboard
                     </Button>
                   </Link>
                   <div className="px-3 py-2">
                     <Button
-                      onClick={handleSignOut}
+                      onClick={() => {
+                        handleSignOut();
+                        setMobileMenuOpen(false);
+                      }}
                       variant="ghost"
                       className="w-full justify-start hover:bg-accent"
                     >
@@ -171,16 +185,23 @@ export default function Navbar() {
                     </Button>
                   </div>
                 </>
-              ) : (
+              ) : !loading ? (
                 <div className="px-3 py-2">
                   <Button
-                    onClick={handleSignIn}
+                    onClick={() => {
+                      handleSignIn();
+                      setMobileMenuOpen(false);
+                    }}
                     variant="ghost"
                     className="w-full justify-start hover:bg-accent"
                   >
                     <LogIn className="h-4 w-4 mr-2" />
                     Login
                   </Button>
+                </div>
+              ) : (
+                <div className="px-3 py-2">
+                  <div className="h-10 w-full bg-white/5 animate-pulse rounded-md"/>
                 </div>
               )}
             </div>
