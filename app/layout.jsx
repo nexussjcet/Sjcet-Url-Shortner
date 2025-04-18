@@ -1,6 +1,7 @@
 import { Inter, Montserrat } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
+import { ThemeProviderWrapper } from "./providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,8 +23,15 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${montserrat.variable}`}>
+        <ThemeProviderWrapper
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
             {children}
             <Toaster position="top-center" richColors />
+          </ThemeProviderWrapper>
       </body>
     </html>
   );
