@@ -31,6 +31,7 @@ A **college-based URL shortener** built for SJCET students and staff. Users can 
 ```bash
 git clone https://github.com/nexussjcet/Sjcet-Url-Shortner.git
 cd Sjcet-Url-Shortner
+```
 
 ### 2. Install Dependencies
 
@@ -38,17 +39,20 @@ cd Sjcet-Url-Shortner
 npm install
 # or
 yarn install
+```
 
 ### 3. Setup Environment Variables
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
 ### 4. Run the Development Server
 
 ```bash
 npm run dev
+```
 
 The app should now be running at http://localhost:3000
 
