@@ -1,7 +1,7 @@
 import { Inter, Montserrat } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
-import { ThemeProviderWrapper } from "./providers";
+import { FlickeringGrid } from "@/components/ui/flickering-grid";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,19 +19,24 @@ export const metadata = {
   description: "Shorten your links with ShortX - SJCET",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${montserrat.variable}`}>
-        <ThemeProviderWrapper
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-            <Toaster position="top-center" richColors />
-          </ThemeProviderWrapper>
+      <body className={`${inter.className} ${montserrat.variable} bg-black`}>
+          <FlickeringGrid
+            className="z-0 absolute inset-0 size-full"
+            squareSize={4}
+            gridGap={6}
+            color="#6B7280"
+            maxOpacity={0.2}
+            flickerChance={0.1}
+          />
+          {children}
+          <Toaster position="top-center" richColors />
       </body>
     </html>
   );

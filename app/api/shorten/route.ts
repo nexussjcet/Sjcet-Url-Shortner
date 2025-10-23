@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
 
-
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const data = await request.json();
     console.log("[Debug] Received request data:", data);
@@ -11,47 +11,37 @@ export async function POST(request) {
       name: data.name || undefined,
     };
 
-    console.log("[Debug] Sending payload:", payload);
+    console.log("[Debug] Sending payload via Axios:", payload);
 
-    const response = await fetch("https://sjcet.in/shorten", {
-      method: "POST",
+    const response = await axios.post("https://sjcet.in/shorten", payload, {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(payload),
     });
 
-    const responseText = await response.text();
-    console.log("[Debug] Raw response:", responseText);
+    console.log("[Debug] Axios response data:", response.data);
 
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (e) {
-      console.error("[Debug] Failed to parse response:", e);
-      throw new Error("Invalid response from server");
-    }
-
-    console.log("[Debug] Parsed response:", result);
-
+    const result = response.data;
     const shortUrl = result?.shortUrl || result?.data?.shortUrl || result?.url;
 
     if (shortUrl) {
       return NextResponse.json({
         success: true,
-        shortUrl: shortUrl,
+        shortUrl,
       });
     }
 
     throw new Error("No shortened URL in response");
   } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
     console.error("[Debug] Error details:", error);
+
     return NextResponse.json(
       {
         success: false,
-        error: `Failed to shorten URL: ${error.message}`,
-        debug: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        error: `Failed to shorten URL: ${err.message}`,
+        debug: process.env.NODE_ENV === "development" ? err.stack : undefined,
       },
       { status: 400 }
     );
