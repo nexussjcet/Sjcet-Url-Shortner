@@ -27,16 +27,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${montserrat.variable} bg-black`}>
-          <FlickeringGrid
-            className="z-0 absolute inset-0 size-full"
-            squareSize={4}
-            gridGap={6}
-            color="#6B7280"
-            maxOpacity={0.2}
-            flickerChance={0.1}
-          />
-          {children}
-          <Toaster position="top-center" richColors />
+        <FlickeringGrid
+          className="z-0 absolute inset-0 size-full"
+          squareSize={4}
+          gridGap={6}
+          color="#4B0082"
+          maxOpacity={0.5}
+          flickerChance={0.1}
+        />
+        {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

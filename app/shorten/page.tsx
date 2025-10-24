@@ -8,6 +8,13 @@ import { motion } from "framer-motion";
 import { QrCode, Copy, ExternalLink, Home } from "lucide-react";
 import QRCode from "react-qr-code";
 import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -23,15 +30,47 @@ export default function Shorten() {
   const [customName, setCustomName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [urlStatus, setUrlStatus] = useState<
+    "safe" | "unsafe" | "checking" | null
+  >(null);
+
   useEffect(() => {
-    console.log("Current URL updated:", currentUrl);
-  }, [currentUrl]);
+    if (!longUrl) {
+      setUrlStatus(null);
+      return;
+    }
+
+    setUrlStatus("checking");
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/check-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: longUrl }),
+        });
+        const data = await res.json();
+
+        if (data.safe) setUrlStatus("safe");
+        else setUrlStatus("unsafe");
+      } catch {
+        setUrlStatus("unsafe");
+      }
+    }, 800);
+
+    return () => clearTimeout(delayDebounce);
+  }, [longUrl]);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!longUrl || !customName) {
       toast.error("URL and name are required!");
+      return;
+    }
+
+    if (urlStatus !== "safe") {
+      toast.error("Cannot shorten unsafe URL!");
       return;
     }
 
@@ -55,6 +94,7 @@ export default function Shorten() {
         toast.success("URL shortened successfully!");
         setLongUrl("");
         setCustomName("");
+        setUrlStatus(null);
       } else {
         throw new Error(data.error || "Failed to get shortened URL");
       }
@@ -105,31 +145,69 @@ export default function Shorten() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <Card className="w-full max-w-3xl mx-auto border-slate-900 dark:border-slate-800 shadow-xl dark:shadow-slate-900/50 shadow-slate-900/50 backdrop-blur-sm bg-slate-900/90 sm:bg-slate-900/90 sm:backdrop-blur-none">
+          <Card className="w-full max-w-3xl mx-auto border-slate-900 shadow-xl shadow-slate-900/50 backdrop-blur-sm bg-[#121212] sm:backdrop-blur-none">
             <CardContent className="p-6 sm:p-8">
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <input
-                  className="w-full p-3 rounded-md text-slate-900 sm:text-slate-900 bg-white/30 sm:bg-slate-800/70 placeholder:text-slate-500 sm:placeholder:text-slate-400"
-                  placeholder="Enter URL"
-                  value={longUrl}
-                  onChange={(e) => setLongUrl(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <input
-                  className="w-full p-3 rounded-md text-slate-900 sm:text-slate-900 bg-white/30 sm:bg-slate-800/70 placeholder:text-slate-500 sm:placeholder:text-slate-400"
-                  placeholder="Enter Name"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full"
-                >
-                  {isSubmitting ? "Processing..." : "Shorten"}
-                </Button>
-              </form>
+              <Field>
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <Field>
+                    <FieldLabel className="text-white">Enter URL</FieldLabel>
+                    <FieldContent>
+                      <input
+                        className={`w-full p-3 rounded-md text-slate-200 bg-white/30 sm:bg-slate-800/70 placeholder:text-slate-500 sm:placeholder:text-slate-400 ${
+                          urlStatus === "safe"
+                            ? "border border-green-500"
+                            : urlStatus === "unsafe"
+                            ? "border border-red-500"
+                            : ""
+                        }`}
+                        placeholder="https://example.com"
+                        value={longUrl}
+                        onChange={(e) => setLongUrl(e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </FieldContent>
+                    <FieldDescription>
+                      {urlStatus === "checking"
+                        ? "Checking URL..."
+                        : urlStatus === "safe"
+                        ? "✅ URL is safe"
+                        : urlStatus === "unsafe"
+                        ? "⚠️ URL may be unsafe"
+                        : ""}
+                    </FieldDescription>
+                    {urlStatus === "unsafe" && (
+                      <FieldError>Cannot shorten unsafe URL</FieldError>
+                    )}
+                  </Field>
+
+                  <Field>
+                    <FieldLabel className="text-white">
+                      Enter Custom Name
+                    </FieldLabel>
+                    <FieldContent>
+                      <input
+                        className="w-full p-3 rounded-md text-slate-200 sm:text-slate-200 bg-white/30 sm:bg-slate-800/70 placeholder:text-slate-500 sm:placeholder:text-slate-400"
+                        placeholder="Name"
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        disabled={isSubmitting || urlStatus !== "safe"}
+                      />
+                    </FieldContent>
+                    <FieldDescription>
+                      This will be used to generate your custom short name.
+                    </FieldDescription>
+                  </Field>
+
+                  <Button
+                    type="submit"
+                    variant={"default"}
+                    disabled={isSubmitting || urlStatus !== "safe"}
+                    className="w-full bg-white text-black hover:bg-white cursor-pointer"
+                  >
+                    {isSubmitting ? "Processing..." : "Shorten"}
+                  </Button>
+                </form>
+              </Field>
             </CardContent>
           </Card>
         </motion.div>
@@ -159,11 +237,7 @@ export default function Shorten() {
           transition={{ duration: 0.7, delay: 0.2 }}
         >
           {[
-            {
-              icon: <Home size={20} />,
-              label: "Go Home",
-              onClick: handleHome,
-            },
+            { icon: <Home size={20} />, label: "Go Home", onClick: handleHome },
             {
               icon: <QrCode size={20} />,
               label: "Generate QR",
@@ -188,7 +262,7 @@ export default function Shorten() {
         sm:bg-slate-900/90 sm:backdrop-blur-none 
         hover:bg-slate-800/60 sm:hover:bg-slate-800/80
         border border-slate-700 sm:border-slate-800
-        shadow-sm
+        shadow-sm cursor-pointer
       "
               onClick={action.onClick}
             >
