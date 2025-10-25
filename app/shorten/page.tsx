@@ -167,6 +167,10 @@ export default function Shorten() {
                       />
                     </FieldContent>
                     <FieldDescription>
+                      This will be used to generate your short url. Please note
+                      not to use &quot;www.&quot;. Follow the format as per the placeholder given
+                    </FieldDescription>
+                    <FieldDescription>
                       {urlStatus === "checking"
                         ? "Checking URL..."
                         : urlStatus === "safe"
@@ -213,9 +217,7 @@ export default function Shorten() {
         </motion.div>
 
         {currentUrl && (
-          <motion.div
-            className="relative z-10 mb-8 sm:mb-12"
-          >
+          <motion.div className="relative z-10 mb-8 sm:mb-12">
             <Card className="w-full max-w-3xl mx-auto border-slate-800 shadow-xl shadow-slate-900/50 bg-white/10 backdrop-blur-sm sm:bg-slate-900/90 sm:backdrop-blur-none">
               <CardContent className="p-6 sm:p-8 text-center">
                 <h3 className="text-lg font-semibold mb-2 text-slate-300">
