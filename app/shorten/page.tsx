@@ -215,9 +215,6 @@ export default function Shorten() {
         {currentUrl && (
           <motion.div
             className="relative z-10 mb-8 sm:mb-12"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.7 }}
           >
             <Card className="w-full max-w-3xl mx-auto border-slate-800 shadow-xl shadow-slate-900/50 bg-white/10 backdrop-blur-sm sm:bg-slate-900/90 sm:backdrop-blur-none">
               <CardContent className="p-6 sm:p-8 text-center">

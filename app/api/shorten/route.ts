@@ -6,10 +6,13 @@ export async function POST(request: Request) {
     const data = await request.json();
     const payload = {
       url: data.url,
-      name: data.name || undefined,
+      name: data.name,
     };
 
-    const response = await axios.post("https://sjcet.in/shorten", payload, {
+    const apiUrl = process.env.SHORTX_API_URL;
+    if (!apiUrl) throw new Error("Missing SHORTX_API_URL env var");
+
+    const response = await axios.post(apiUrl, payload, {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
