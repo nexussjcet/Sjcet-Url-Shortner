@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     };
 
     const apiUrl = process.env.SHORTX_API_URL;
-    if (!apiUrl) throw new Error("Missing SHORTX_API_URL env var");
+    if (!apiUrl) throw new Error("Missing SHORTX_API_URL");
 
     const response = await axios.post(apiUrl, payload, {
       headers: {
